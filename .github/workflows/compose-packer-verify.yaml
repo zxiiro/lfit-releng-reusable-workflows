@@ -18,31 +18,31 @@ on:
         type: string
       GERRIT_CHANGE_NUMBER:
         description: "The Gerrit number"
-        required: true
+        required: false
         type: string
       GERRIT_CHANGE_URL:
         description: "URL to the change"
-        required: true
+        required: false
         type: string
       GERRIT_EVENT_TYPE:
         description: "Type of Gerrit event"
-        required: true
+        required: false
         type: string
       GERRIT_PATCHSET_NUMBER:
         description: "The patch number for the change"
-        required: true
+        required: false
         type: string
       GERRIT_PATCHSET_REVISION:
         description: "The revision sha"
-        required: true
+        required: false
         type: string
       GERRIT_PROJECT:
         description: "Project in Gerrit"
-        required: true
+        required: false
         type: string
       GERRIT_REFSPEC:
         description: "Gerrit refspec of change"
-        required: true
+        required: false
         type: string
       ENV_VARS:
         # yamllint disable-line rule:line-length
@@ -75,64 +75,71 @@ jobs:
   packer-validator:
     runs-on: ubuntu-latest
     steps:
-      - name: Gerrit Checkout
-        # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
+      - name: Checkout repository
+        uses: actions/checkout@v2
         with:
-          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
-          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
-          gerrit-url: ${{ vars.GERRIT_URL }}
-          delay: "0s"
-          submodules: "true"
-      - name: Check for changes
-        # yamllint disable-line rule:line-length
-        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
-        id: changes
-        with:
-          base: ${{ inputs.GERRIT_BRANCH }}
-          ref: ${{ inputs.GERRIT_PATCHSET_REVISION }}
-          filters: |
-            src:
-              - 'packer/**'
+          submodules: 'true'
+      # - name: Gerrit Checkout
+      #   # yamllint disable-line rule:line-length
+      #   uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
+      #   with:
+      #     gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+      #     gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+      #     gerrit-url: ${{ vars.GERRIT_URL }}
+      #     delay: "0s"
+      #     submodules: "true"
+      # - name: Check for changes
+      #   # yamllint disable-line rule:line-length
+      #   uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+      #   id: changes
+      #   with:
+      #     base: ${{ inputs.GERRIT_BRANCH }}
+      #     ref: ${{ inputs.GERRIT_PATCHSET_REVISION }}
+      #     filters: |
+      #       src:
+      #         - 'packer/**'
       - name: Setup packer
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         uses: hashicorp/setup-packer@main
         id: setup
         with:
           version: ${{ env.PACKER_VERSION }}
       - name: Export env variables
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
         uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Export env secrets
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
         uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
-          secrets: ${{ secrets.ENV_SECRETS }}
+          secrets: ${{ secrets }}
           include: CLOUDS_ENV_B64, CLOUDS_YAML_B64
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
           # Generate a unique resume token for this workflow run
           COMMAND_RESUME_TOKEN=$(echo -n ${{ github.token }} | sha256sum | head -c 64)
           # Mask the resume token's value in the logs
-          echo "::add-mask::$COMMAND_RESUME_TOKEN"
+          #echo "::add-mask::$COMMAND_RESUME_TOKEN"
           # Stop command workflow processing
           echo "::stop-commands::$COMMAND_RESUME_TOKEN"
-          clouds_env_b64="${{ env.CLOUDS_ENV_B64 }}"
+          clouds_env_b64="${{ secrets.CLOUDS_ENV_B64 }}"
+          echo "${clouds_env_b64}"
           echo "${clouds_env_b64}" | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
+          echo "------------"
+          cat "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
           # Resume workflow command processing
           echo "::$COMMAND_RESUME_TOKEN::"
         # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
@@ -143,27 +150,27 @@ jobs:
           echo "::add-mask::$COMMAND_RESUME_TOKEN"
           # Stop command workflow processing
           echo "::stop-commands::$COMMAND_RESUME_TOKEN"
-          clouds_yaml_b64="${{ env.CLOUDS_YAML_B64 }}"
+          clouds_yaml_b64="${{ secrets.CLOUDS_YAML_B64 }}"
           echo "${clouds_yaml_b64}" | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
           # Resume workflow command processing
           echo "::$COMMAND_RESUME_TOKEN::"
         # yamllint enable rule:line-length
       - name: Setup Python
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
         uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
           python-version: "3.11"
       - name: Install openstack deps
         id: install-openstack-deps
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install python-openstackclient
           pip freeze
       - name: Verify packer files
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: bash
         # yamllint disable rule:line-length
         run: |
@@ -201,6 +208,7 @@ jobs:
                   LOG_FILE="packer-validate-${varfile##*/}-${template##*/}.log"
                   export PACKER_LOG="yes"
                   export PACKER_LOG_PATH="$PACKER_LOGS_DIR/$LOG_FILE"
+                  cat "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
                   if output=$(OS_CLOUD=${{ env.OS_CLOUD }} packer validate \
                         -var-file="${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl" \
                         -var-file="$varfile" "$template"); then
