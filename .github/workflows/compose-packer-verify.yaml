@@ -18,31 +18,31 @@ on:
         type: string
       GERRIT_CHANGE_NUMBER:
         description: "The Gerrit number"
-        required: true
+        required: false
         type: string
       GERRIT_CHANGE_URL:
         description: "URL to the change"
-        required: true
+        required: false
         type: string
       GERRIT_EVENT_TYPE:
         description: "Type of Gerrit event"
-        required: true
+        required: false
         type: string
       GERRIT_PATCHSET_NUMBER:
         description: "The patch number for the change"
-        required: true
+        required: false
         type: string
       GERRIT_PATCHSET_REVISION:
         description: "The revision sha"
-        required: true
+        required: false
         type: string
       GERRIT_PROJECT:
         description: "Project in Gerrit"
-        required: true
+        required: false
         type: string
       GERRIT_REFSPEC:
         description: "Gerrit refspec of change"
-        required: true
+        required: false
         type: string
       ENV_VARS:
         # yamllint disable-line rule:line-length
@@ -75,39 +75,39 @@ jobs:
   packer-validator:
     runs-on: ubuntu-latest
     steps:
-      - name: Gerrit Checkout
-        # yamllint disable-line rule:line-length
-        uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
-        with:
-          gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
-          gerrit-project: ${{ inputs.GERRIT_PROJECT }}
-          gerrit-url: ${{ vars.GERRIT_URL }}
-          delay: "0s"
-          submodules: "true"
-      - name: Check for changes
-        # yamllint disable-line rule:line-length
-        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
-        id: changes
-        with:
-          base: ${{ inputs.GERRIT_BRANCH }}
-          ref: ${{ inputs.GERRIT_PATCHSET_REVISION }}
-          filters: |
-            src:
-              - 'packer/**'
+      # - name: Gerrit Checkout
+      #   # yamllint disable-line rule:line-length
+      #   uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
+      #   with:
+      #     gerrit-refspec: ${{ inputs.GERRIT_REFSPEC }}
+      #     gerrit-project: ${{ inputs.GERRIT_PROJECT }}
+      #     gerrit-url: ${{ vars.GERRIT_URL }}
+      #     delay: "0s"
+      #     submodules: "true"
+      # - name: Check for changes
+      #   # yamllint disable-line rule:line-length
+      #   uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+      #   id: changes
+      #   with:
+      #     base: ${{ inputs.GERRIT_BRANCH }}
+      #     ref: ${{ inputs.GERRIT_PATCHSET_REVISION }}
+      #     filters: |
+      #       src:
+      #         - 'packer/**'
       - name: Setup packer
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         uses: hashicorp/setup-packer@main
         id: setup
         with:
           version: ${{ env.PACKER_VERSION }}
       - name: Export env variables
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
         uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
           secrets: ${{ inputs.ENV_VARS }}
       - name: Export env secrets
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
         uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
@@ -115,7 +115,7 @@ jobs:
           include: CLOUDS_ENV_B64, CLOUDS_YAML_B64
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
@@ -132,7 +132,7 @@ jobs:
         # yamllint enable rule:line-length
       - name: Create cloud.yaml file for openstack client
         id: create-cloud-yaml-file
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: /usr/bin/bash {0}
         # yamllint disable rule:line-length
         run: |
@@ -149,21 +149,21 @@ jobs:
           echo "::$COMMAND_RESUME_TOKEN::"
         # yamllint enable rule:line-length
       - name: Setup Python
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         # yamllint disable-line rule:line-length
         uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
           python-version: "3.11"
       - name: Install openstack deps
         id: install-openstack-deps
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install python-openstackclient
           pip freeze
       - name: Verify packer files
-        if: steps.changes.outputs.src == 'true'
+        #if: steps.changes.outputs.src == 'true'
         shell: bash
         # yamllint disable rule:line-length
         run: |
