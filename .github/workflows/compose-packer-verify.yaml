@@ -75,6 +75,10 @@ jobs:
   packer-validator:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          submodules: 'true'
       # - name: Gerrit Checkout
       #   # yamllint disable-line rule:line-length
       #   uses: lfit/checkout-gerrit-change-action@54d751e8bd167bc91f7d665dabe33fae87aaaa63 # v0.9
@@ -111,7 +115,7 @@ jobs:
         # yamllint disable-line rule:line-length
         uses: infovista-opensource/vars-to-env-action@3d3e7c8ae1e9e5fcd9ce83e56ab85a6a135d2ffa # v2.0.0
         with:
-          secrets: ${{ secrets.ENV_SECRETS }}
+          secrets: ${{ secrets }}
           include: CLOUDS_ENV_B64, CLOUDS_YAML_B64
       - name: Create cloud-env file required for packer
         id: create-cloud-env-file
@@ -122,11 +126,14 @@ jobs:
           # Generate a unique resume token for this workflow run
           COMMAND_RESUME_TOKEN=$(echo -n ${{ github.token }} | sha256sum | head -c 64)
           # Mask the resume token's value in the logs
-          echo "::add-mask::$COMMAND_RESUME_TOKEN"
+          #echo "::add-mask::$COMMAND_RESUME_TOKEN"
           # Stop command workflow processing
           echo "::stop-commands::$COMMAND_RESUME_TOKEN"
-          clouds_env_b64="${{ env.CLOUDS_ENV_B64 }}"
+          clouds_env_b64="${{ secrets.CLOUDS_ENV_B64 }}"
+          echo "${clouds_env_b64}"
           echo "${clouds_env_b64}" | base64 --decode > "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
+          echo "------------"
+          cat "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
           # Resume workflow command processing
           echo "::$COMMAND_RESUME_TOKEN::"
         # yamllint enable rule:line-length
@@ -143,7 +150,7 @@ jobs:
           echo "::add-mask::$COMMAND_RESUME_TOKEN"
           # Stop command workflow processing
           echo "::stop-commands::$COMMAND_RESUME_TOKEN"
-          clouds_yaml_b64="${{ env.CLOUDS_YAML_B64 }}"
+          clouds_yaml_b64="${{ secrets.CLOUDS_YAML_B64 }}"
           echo "${clouds_yaml_b64}" | base64 --decode > "$HOME/.config/openstack/clouds.yaml"
           # Resume workflow command processing
           echo "::$COMMAND_RESUME_TOKEN::"
@@ -201,6 +208,7 @@ jobs:
                   LOG_FILE="packer-validate-${varfile##*/}-${template##*/}.log"
                   export PACKER_LOG="yes"
                   export PACKER_LOG_PATH="$PACKER_LOGS_DIR/$LOG_FILE"
+                  cat "${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl"
                   if output=$(OS_CLOUD=${{ env.OS_CLOUD }} packer validate \
                         -var-file="${GITHUB_WORKSPACE}/cloud-env.pkrvars.hcl" \
                         -var-file="$varfile" "$template"); then

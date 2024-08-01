@@ -1,0 +1,18 @@
+---
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2024 The Linux Foundation
+
+name: Verify Packer Workflows
+
+# yamllint disable-line rule:truthy
+on: [push, pull_request]
+
+jobs:
+  test-packer-verify:
+    uses: ./.github/workflows/compose-packer-verify.yaml
+    with:
+      GERRIT_BRANCH: ${{ github.ref }}
+      GERRIT_CHANGE_ID: Ic8aaa0728a43936cd4c6e1ed590e01ba8f0fbf5b
+    secrets:
+      CLOUDS_YAML_B64: ewogICJjbG91ZF9hdXRoX3VybCI6ICJodHRwczovL2V4YW1wbGUub3JnLyIsCiAgImNsb3VkX3RlbmFudCI6ICJhYmMxMjMiLAogICJjbG91ZF91c2VyIjogInVzZXIxIiwKICAiY2xvdWRfcGFzcyI6ICJwYXNzMSIsCiAgImNsb3VkX25ldHdvcmsiOiAibmV0d29yazEiLAogICJzc2hfcHJveHlfaG9zdCI6ICIiCn0K
+      CLOUDS_ENV_B64: ewogICJjbG91ZF9hdXRoX3VybCI6ICJodHRwczovL2V4YW1wbGUub3JnLyIsCiAgImNsb3VkX3RlbmFudCI6ICJhYmMxMjMiLAogICJjbG91ZF91c2VyIjogInVzZXIxIiwKICAiY2xvdWRfcGFzcyI6ICJwYXNzMSIsCiAgImNsb3VkX25ldHdvcmsiOiAibmV0d29yazEiLAogICJzc2hfcHJveHlfaG9zdCI6ICIiCn0K
